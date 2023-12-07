@@ -10,12 +10,11 @@ import os
 Processes given audio file, transcribe its dialog, stores it in a text file in a preset folder """
 
 
-def audioTranscription(path, filename, debug_mode):
-    model = whisper.load_model("base")
+def audioTranscription(path, filename, model, debug_mode):
     try:
         audio = whisper.load_audio(path + "/" + filename + ".mp3")
     except:
-        print("model could not load audio file")
+        print("Model could not load audio file")
         return
     try:
         result = model.transcribe(audio)
@@ -29,7 +28,7 @@ def audioTranscription(path, filename, debug_mode):
 
 
 
-""""# For a given channel name, locates and returns its ID"""
+"""" For a given channel name, locates and returns its ID"""
 
 
 def getChannelId(youtube, channel_name):
@@ -82,14 +81,21 @@ def extractAudio(video_url):
         print("Audio download failed")
     video_title = info_dict['title']
     return video_title
+    # trim_title = ''.join(e for e in video_title if e.isalnum())
+    # os.rename("temp/"+video_title+".mp3", "temp/"+trim_title+".mp3",)
+    # return trim_title
 
 
 """Lil neat program that seeks a given youtube video or channel, and extracts the videos transcription in a txt file"""
+""" It asks for:
+    Google API Key: Just your API Key so youtube MetaInfo can be accessed
+    
+"""
 
 if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
-    google_ID = simpledialog.askstring("Please input your Google API", "Google API ID")
+    google_ID = simpledialog.askstring("Please input your Google API Key", "Google API Key")
     if not google_ID:
         print("Google_ID was not introduced")
         exit()
@@ -98,7 +104,9 @@ if __name__ == "__main__":
         print("Channel name (or video url) was not provided")
         exit()
     debug_mode = simpledialog.askstring("Debug Mode", "Enable Debug Mode (True or False")
-    if not debug_mode:
+    if debug_mode == "True":
+        debug_mode = True
+    else:
         debug_mode = False
     try:
         youtube = build('youtube', 'v3', developerKey=google_ID)
@@ -106,12 +114,14 @@ if __name__ == "__main__":
         print("Uh-oh! Conection Failed for some reason. Exiting")
         exit()
 
+    #Load already whisper model, at it's default "size"
+    model = whisper.load_model("base")
     url_template = "https://www.youtube.com/watch?v="
     # We'll know if it's no actually a channel at this point
     if url_template in channel_name:
         file = extractAudio(channel_name)
         if file:
-            audioTranscription('temp/', file, debug_mode)
+            audioTranscription('temp/', file, model, debug_mode)
 
     # Seems it was not, so transcripting several of the (latest) channel videos
     else:
@@ -121,4 +131,4 @@ if __name__ == "__main__":
         for video_url in video_list:
             file = extractAudio(url_template + video_url)
             if file:
-                audioTranscription('temp/', file, debug_mode)
+                audioTranscription('temp/', file, model, debug_mode)
